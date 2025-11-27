@@ -2,7 +2,7 @@ const Product = require("../models/products.js");
 
 const createProduct = async (req, res) => {
   try {
-    console.log("fdsfd")
+ 
     const {
       type,
       productName,
@@ -12,7 +12,6 @@ const createProduct = async (req, res) => {
       size,
       inStock,
       categoryType,
-      isRelated
     } = req.body;
 
     const productImg = req.files?.productImg
@@ -58,7 +57,6 @@ const createProduct = async (req, res) => {
       size,
       inStock: inStock === "false" ? false : true,
       categoryType,
-      isRelated
     });
 
     res.status(201).json({
@@ -84,6 +82,10 @@ const getProductsBasedOnType = async (req, res) => {
             $match: { type: type }
         }
     ]);
+
+    if(!products){
+      return res.status(400).json({ success: false, message: "Products are not fetched successfully!"})
+    }
 
     return res.status(200).json({
       success: true,
@@ -227,9 +229,32 @@ const getProduct = async (req, res) => {
 };
 
 
+const getRelatedProducts = async (req, res) => {
+  try {
+
+    const relatedProducts = await Product.aggregate([
+      { $sample: { size: 3 } }
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Related products fetched successfully",
+      data: relatedProducts
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+
 module.exports = {
   createProduct,
   getProductsBasedOnType,
   getFilteredProducts,
-  getProduct
+  getProduct,
+  getRelatedProducts
 };

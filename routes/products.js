@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { createProduct, getProductsBasedOnType, getFilteredProducts, getProduct } = require("../controllers/products");
+const { createProduct, getProductsBasedOnType, getFilteredProducts, getProduct, getRelatedProducts } = require("../controllers/products");
 const multer = require("multer");
 const path = require("path");
 
@@ -29,5 +29,6 @@ router.post(
 router.get("/getProductsBasedOnType", getProductsBasedOnType);
 router.get("/getFilteredProducts", getFilteredProducts);
 router.get("/getProduct/:id", getProduct);
+router.get("/getReletedProducts", getRelatedProducts);
 
 module.exports = router;

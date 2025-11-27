@@ -60,10 +60,6 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    isRelated: {
-        type: Boolean,
-        default:false
-    }
   },
   { timestamps: true }
 );

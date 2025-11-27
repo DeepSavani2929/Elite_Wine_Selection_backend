@@ -1,8 +1,14 @@
 const router = require("express").Router()
-const products = require("./products.js")
 const auth = require("./auth.js")
+const products = require("./products.js")
+const blogs = require("./blog.js")
+const cart = require("./cart.js")
 
-router.use("/products", products)
+
 router.use("/auth", auth)
+router.use("/products", products)
+router.use("/blogs", blogs)
+router.use("/cart", cart)
+
 
 module.exports = router;    
