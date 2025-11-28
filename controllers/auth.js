@@ -178,7 +178,7 @@
 
 
 
-// controllers/authController.js
+
 const User = require("../models/auth.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -187,7 +187,7 @@ const nodemailer = require("nodemailer");
 const resetPasswordEmailTemplate = require("../template/resetPasswordEmail.js");
 const { EMAIL_USER, EMAIL_PASS, JWT_SECRET } = process.env;
 
-const { mergeCarts } = require("./cartController");
+const { mergeCarts } = require("./cart.js");
 const Cart = require("../models/cart.js");
 
 const transporter = nodemailer.createTransport({
@@ -199,6 +199,7 @@ const transporter = nodemailer.createTransport({
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, guestCartId } = req.body;
+    console.log(req.body)
 
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ success: false, message: "All fields are required!" });
@@ -227,7 +228,7 @@ const register = async (req, res) => {
       await Cart.updateMany({ cartId: guestCartId }, { userId: newUser._id });
     }
 
-    const token = jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: "1d" });
+    const token = await jwt.sign({ id: newUser._id }, JWT_SECRET, { expiresIn: "1d" });
     const { password: _, ...userData } = newUser._doc;
 
     return res.status(200).json({
@@ -243,13 +244,7 @@ const register = async (req, res) => {
   }
 };
 
-/**
- * Login:
- * Accepts body: { email, password, guestCartId? }
- * Behavior:
- * - If guestCartId provided and different from user's cartId, merge guestCartId into user's cartId.
- * - Return token and user data.
- */
+
 const loginUser = async (req, res) => {
   try {
     const { email, password, guestCartId } = req.body;
@@ -260,19 +255,16 @@ const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, loggedInUser.password);
     if (!isMatch) return res.status(400).json({ success: false, message: "Invalid credentials!" });
 
-    // If client had a guest cart, merge it into user's cart
     if (guestCartId && guestCartId !== "null" && guestCartId !== loggedInUser.cartId) {
-      // ensure target cartId exists for user
+
       const targetCartId = loggedInUser.cartId || ("cart-" + new mongoose.Types.ObjectId().toString());
 
-      // If user had no cartId earlier, set it;
       if (!loggedInUser.cartId) {
         loggedInUser.cartId = targetCartId;
         await loggedInUser.save();
       }
 
       await mergeCarts(guestCartId, targetCartId, loggedInUser._id);
-      // After merge, guestCartId items moved to user's cartId
     }
 
     const token = jwt.sign({ id: loggedInUser._id }, JWT_SECRET, { expiresIn: "1d" });
@@ -291,9 +283,7 @@ const loginUser = async (req, res) => {
   }
 };
 
-/**
- * emailVerify and resetPassword fixes: resetPassword now uses findById correctly.
- */
+
 const emailVerify = async (req, res) => {
   try {
     const { email } = req.body;
@@ -320,7 +310,7 @@ const resetPassword = async (req, res) => {
     const { newPassword, id } = req.body;
     if (!id || !newPassword) return res.status(400).json({ success: false, message: "id and newPassword required" });
 
-    // findById returns doc or null
+
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ success: false, message: "User not registered" });
 

@@ -1,5 +1,12 @@
 const router = require("express").Router();
-const { createProduct, getProductsBasedOnType, getFilteredProducts, getProduct, getRelatedProducts } = require("../controllers/products");
+const {
+  createProduct,
+  getProductsBasedOnType,
+  getFilteredProducts,
+  getProduct,
+  getRelatedProducts,
+  updateProduct,
+} = require("../controllers/products");
 const multer = require("multer");
 const path = require("path");
 
@@ -17,18 +24,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post(
-  "/createProduct",
-  upload.fields([
-    { name: "productImg",  maxCount: 1  },
-    { name: "varietylogo",  maxCount: 1  },
-    { name: "medal",  maxCount: 1  },
-  ]),
-  createProduct
-);
+router.post("/createProduct", upload.single("productImg"), createProduct);
 router.get("/getProductsBasedOnType", getProductsBasedOnType);
 router.get("/getFilteredProducts", getFilteredProducts);
 router.get("/getProduct/:id", getProduct);
 router.get("/getReletedProducts", getRelatedProducts);
+router.put("/updateProduct/:id", upload.single("productImg"), updateProduct);
 
 module.exports = router;

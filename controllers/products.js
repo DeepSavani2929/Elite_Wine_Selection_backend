@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Product = require("../models/products.js");
 
 const createProduct = async (req, res) => {
@@ -12,17 +13,12 @@ const createProduct = async (req, res) => {
       size,
       inStock,
       categoryType,
+      medal
     } = req.body;
 
     const productImg = req.files?.productImg
       ? req.files.productImg[0].filename
       : null;
-
-    const varietylogo = req.files?.varietylogo
-      ? req.files.varietylogo[0].filename
-      : null;
-
-    const medal = req.files?.medal ? req.files.medal[0].filename : null;
 
     if (
       !productName ||
@@ -50,7 +46,6 @@ const createProduct = async (req, res) => {
       productImg,
       productName,
       variety,
-      varietylogo,
       price,
       medal,
       flavour,
@@ -251,10 +246,76 @@ const getRelatedProducts = async (req, res) => {
 };
 
 
+
+const updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+
+    let product = await Product.findById(new mongoose.Types.ObjectId(id));
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+
+    const {
+      type,
+      productName,
+      variety,
+      price,
+      flavour,
+      size,
+      inStock,
+      categoryType,
+      medal
+    } = req.body;
+
+ 
+    const updates = {
+      type,
+      productName,
+      variety,
+      price,
+      flavour,
+      medal,
+      size,
+      categoryType,
+      inStock: inStock === "false" ? false : true,
+    };
+
+
+    if (req.files?.productImg) {
+      updates.productImg = req.files.productImg[0].filename;
+    }
+
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updates, {
+      new: true,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Product updated successfully!",
+      data: updatedProduct,
+    });
+
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   createProduct,
   getProductsBasedOnType,
   getFilteredProducts,
   getProduct,
-  getRelatedProducts
+  getRelatedProducts,
+  updateProduct
 };

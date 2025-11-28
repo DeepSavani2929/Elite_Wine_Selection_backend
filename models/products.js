@@ -23,10 +23,7 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
-    varietylogo: {
-      type: String,
-      default: null,
-    },
+  
 
     price: {
       type: Number,
@@ -34,8 +31,8 @@ const productSchema = new mongoose.Schema(
     },
 
     medal: {
-      type: String,
-      default: null,
+      type: Boolean,
+      default: false,
     },
 
     flavour: {
