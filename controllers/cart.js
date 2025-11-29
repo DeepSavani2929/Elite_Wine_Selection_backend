@@ -169,7 +169,7 @@ const mergeCarts = async (guestCartId, targetCartId, userId = null) => {
 const addProductIntoTheCart = async (req, res) => {
   try {
     const { cartId, productId, userId } = req.body;
-    const quantity = Number(req.body.quantity) || 1;
+    console.log(req.body)
 
     if (!cartId || !productId) {
       return res.status(400).json({
@@ -181,9 +181,8 @@ const addProductIntoTheCart = async (req, res) => {
     const existingItem = await Cart.findOne({ cartId, productId });
 
     if (existingItem) {
-      existingItem.quantity += quantity;
+      existingItem.quantity += 1;
 
- 
       if (userId) {
         existingItem.userId = userId;
       }
@@ -200,7 +199,6 @@ const addProductIntoTheCart = async (req, res) => {
     const newCartData = {
       cartId,
       productId,
-      quantity,
     };
 
     if (userId) {
@@ -286,6 +284,47 @@ const decrementQuantity = async (req, res) => {
   }
 };
 
+// const getAllProductsAvailableInCart = async (req, res) => {
+//   try {
+//     const { cartId } = req.params;
+//     let { userId } = req.query;
+
+//     if (!cartId) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "cartId is required",
+//       });
+//     }
+
+//     let filter = { cartId };
+
+//     if (userId) {
+//       if (!mongoose.Types.ObjectId.isValid(userId)) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Invalid userId format!",
+//         });
+//       }
+
+//       userId = new mongoose.Types.ObjectId(userId);
+//       filter.userId = userId;
+//     }
+
+//     const items = await Cart.find(filter).populate("productId");
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Cart fetched successfully!",
+//       data: items,
+//     });
+//   } catch (error) {
+//     return res.status(400).json({
+//       success: false,
+//       message: error.message,
+//     });
+//   }
+// };
+
 const getAllProductsAvailableInCart = async (req, res) => {
   try {
     const { cartId } = req.params;
@@ -312,7 +351,55 @@ const getAllProductsAvailableInCart = async (req, res) => {
       filter.userId = userId;
     }
 
-    const items = await Cart.find(filter).populate("productId");
+    const items = await Cart.aggregate([
+      { $match: filter },
+
+      {
+        $addFields: {
+          productId: {
+            $cond: [
+              { $eq: [{ $type: "$productId" }, "string"] },
+              { $toObjectId: "$productId" },
+              "$productId",
+            ],
+          },
+        },
+      },
+
+      {
+        $lookup: {
+          from: "products",
+          localField: "productId",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+
+      { $unwind: "$productDetails" },
+
+      // Create flattened custom fields
+      {
+        $addFields: {
+          productName: "$productDetails.productName",
+          productImg: "$productDetails.productImg",
+          price: "$productDetails.price",
+          variety: "$productDetails.variety",
+          medal: "$productDetails.medal",
+          flavour: "$productDetails.flavour",
+          size: "$productDetails.size",
+          inStock: "$productDetails.inStock",
+          categoryType: "$productDetails.categoryType",
+        },
+      },
+
+      // Remove productDetails + cart _id
+      {
+        $project: {
+          _id: 0,
+          productDetails: 0,
+        },
+      },
+    ]);
 
     return res.status(200).json({
       success: true,
