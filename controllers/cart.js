@@ -169,7 +169,7 @@ const mergeCarts = async (guestCartId, targetCartId, userId = null) => {
 const addProductIntoTheCart = async (req, res) => {
   try {
     const { cartId, productId, userId } = req.body;
-    console.log(req.body)
+    console.log(req.body);
 
     if (!cartId || !productId) {
       return res.status(400).json({
@@ -431,7 +431,7 @@ const deleteCartProduct = async (req, res) => {
     await Cart.findByIdAndDelete(cartItem._id);
     return res
       .status(200)
-      .json({ success: true, message: "Cart item deleted successfully!" });
+      .json({ success: true, message: "Cart item removed successfully!" });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }

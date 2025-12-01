@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
   {
@@ -22,8 +22,6 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-
-  
 
     price: {
       type: Number,
@@ -56,10 +54,9 @@ const productSchema = new mongoose.Schema(
       enum: ["Popular", "Featured", "New Arrivals"],
       required: true,
     },
-
   },
   { timestamps: true }
 );
 
-const product = mongoose.model("product", productSchema)
-module.exports = product; 
+const product = mongoose.model("product", productSchema);
+module.exports = product;

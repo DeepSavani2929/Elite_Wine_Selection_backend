@@ -2,7 +2,7 @@ const Blog = require("../models/blog.js");
 
 const createBlog = async (req, res) => {
   try {
-    console.log("fvdvd")
+    console.log("fvdvd");
     const { blogTitle, blogDesc, blogContent } = req.body;
 
     const blogImg = req.file ? req.file.filename : null;
@@ -45,13 +45,11 @@ const getBlogs = async (req, res) => {
         .json({ success: false, message: "Blogs are not found!" });
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        data: allBlogs,
-        message: "Blogs are fetched successfully!",
-      });
+    return res.status(200).json({
+      success: true,
+      data: allBlogs,
+      message: "Blogs are fetched successfully!",
+    });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
@@ -63,11 +61,19 @@ const getBlog = async (req, res) => {
 
     const blog = await Blog.findById(id);
 
-    if(!blog) {
-        return res.status(400).json({ success: false, message: "blog is not found!"})
+    if (!blog) {
+      return res
+        .status(400)
+        .json({ success: false, message: "blog is not found!" });
     }
 
-    return res.status(200).json({ success: true, data: blog, message: "Blog is fetched successfully!"})
+    return res
+      .status(200)
+      .json({
+        success: true,
+        data: blog,
+        message: "Blog is fetched successfully!",
+      });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }

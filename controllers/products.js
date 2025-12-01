@@ -3,7 +3,6 @@ const Product = require("../models/products.js");
 
 const createProduct = async (req, res) => {
   try {
- 
     const {
       type,
       productName,
@@ -13,7 +12,7 @@ const createProduct = async (req, res) => {
       size,
       inStock,
       categoryType,
-      medal
+      medal,
     } = req.body;
 
     const productImg = req.files?.productImg
@@ -67,19 +66,23 @@ const createProduct = async (req, res) => {
   }
 };
 
-
 const getProductsBasedOnType = async (req, res) => {
   try {
     const { type } = req.query;
 
     const products = await Product.aggregate([
-        {
-            $match: { type: type }
-        }
+      {
+        $match: { type: type },
+      },
     ]);
 
-    if(!products){
-      return res.status(400).json({ success: false, message: "Products are not fetched successfully!"})
+    if (!products) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Products are not fetched successfully!",
+        });
     }
 
     return res.status(200).json({
@@ -87,11 +90,10 @@ const getProductsBasedOnType = async (req, res) => {
       count: products.length,
       data: products,
     });
-
   } catch (error) {
-    return res.status(400).json({ 
-      success: false, 
-      message: error.message 
+    return res.status(400).json({
+      success: false,
+      message: error.message,
     });
   }
 };
@@ -112,7 +114,6 @@ const getFilteredProducts = async (req, res) => {
 
     page = Number(page) || 1;
     limit = Number(limit) || 6;
-
 
     const matchStage = {};
 
@@ -141,7 +142,6 @@ const getFilteredProducts = async (req, res) => {
       };
     }
 
- 
     const sortStage = {};
     switch (sortBy) {
       case "Alphabetically A-Z":
@@ -196,8 +196,6 @@ const getFilteredProducts = async (req, res) => {
   }
 };
 
-
-
 const getProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -223,34 +221,26 @@ const getProduct = async (req, res) => {
   }
 };
 
-
 const getRelatedProducts = async (req, res) => {
   try {
-
-    const relatedProducts = await Product.aggregate([
-      { $sample: { size: 3 } }
-    ]);
+    const relatedProducts = await Product.aggregate([{ $sample: { size: 3 } }]);
 
     return res.status(200).json({
       success: true,
       message: "Related products fetched successfully",
-      data: relatedProducts
+      data: relatedProducts,
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
 
-
-
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-
 
     let product = await Product.findById(new mongoose.Types.ObjectId(id));
     if (!product) {
@@ -259,7 +249,6 @@ const updateProduct = async (req, res) => {
         message: "Product not found",
       });
     }
-
 
     const {
       type,
@@ -270,10 +259,9 @@ const updateProduct = async (req, res) => {
       size,
       inStock,
       categoryType,
-      medal
+      medal,
     } = req.body;
 
- 
     const updates = {
       type,
       productName,
@@ -286,11 +274,9 @@ const updateProduct = async (req, res) => {
       inStock: inStock === "false" ? false : true,
     };
 
-
     if (req.files?.productImg) {
       updates.productImg = req.files.productImg[0].filename;
     }
-
 
     const updatedProduct = await Product.findByIdAndUpdate(id, updates, {
       new: true,
@@ -301,7 +287,6 @@ const updateProduct = async (req, res) => {
       message: "Product updated successfully!",
       data: updatedProduct,
     });
-
   } catch (error) {
     return res.status(400).json({
       success: false,
@@ -310,12 +295,11 @@ const updateProduct = async (req, res) => {
   }
 };
 
-
 module.exports = {
   createProduct,
   getProductsBasedOnType,
   getFilteredProducts,
   getProduct,
   getRelatedProducts,
-  updateProduct
+  updateProduct,
 };

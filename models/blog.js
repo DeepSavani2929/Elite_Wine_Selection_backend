@@ -1,4 +1,4 @@
-const mongoose = require("mongoose")
+const mongoose = require("mongoose");
 const blogSchema = new mongoose.Schema(
   {
     blogImg: {
@@ -16,7 +16,7 @@ const blogSchema = new mongoose.Schema(
     },
     blogContent: {
       type: String,
-      required: true, 
+      required: true,
     },
   },
   { timestamps: true }

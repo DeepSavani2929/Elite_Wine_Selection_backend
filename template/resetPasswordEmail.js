@@ -1,4 +1,4 @@
- const resetPasswordEmailTemplate = (resetLink) =>  {
+const resetPasswordEmailTemplate = (resetLink) => {
   return `
   <table width="100%" cellpadding="0" cellspacing="0" border="0" 
     style="background:#ffffff; padding:40px 0; font-family:Arial, sans-serif;">
@@ -107,5 +107,4 @@
   `;
 };
 
-
-module.exports = resetPasswordEmailTemplate
+module.exports = resetPasswordEmailTemplate;
