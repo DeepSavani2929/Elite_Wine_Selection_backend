@@ -6,6 +6,7 @@ const {
   getProduct,
   getRelatedProducts,
   updateProduct,
+  getPopularProducts,
 } = require("../controllers/products");
 const multer = require("multer");
 const path = require("path");
@@ -30,5 +31,6 @@ router.get("/getFilteredProducts", getFilteredProducts);
 router.get("/getProduct/:id", getProduct);
 router.get("/getReletedProducts", getRelatedProducts);
 router.put("/updateProduct/:id", upload.single("productImg"), updateProduct);
+router.get("/getPopularProducts", getPopularProducts)
 
 module.exports = router;

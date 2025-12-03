@@ -18,6 +18,7 @@ const generateOrderId = async () => {
 const buyProducts = async (req, res) => {
   try {
     const {
+      cartId,
       contactInfo,
       deliveryAddress,
       billingAddress,
@@ -26,7 +27,9 @@ const buyProducts = async (req, res) => {
       currency,
     } = req.body;
 
-    const userId = req.user?.id || null;
+    if (!cartId) {
+      return res.status(400).json({ message: "cartId is required" });
+    }
 
     if (!cartItems || cartItems.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
@@ -41,37 +44,32 @@ const buyProducts = async (req, res) => {
     }
 
     const currencyLower = currency.toLowerCase();
-
-    const minimumCharge = {
-      usd: 0.5,
-      eur: 0.5,
-      gbp: 0.3,
-      inr: 1.0,
-    };
-
+    const minimumCharge = { usd: 0.5, eur: 0.5, gbp: 0.3, inr: 1.0 };
     const minAllowed = minimumCharge[currencyLower] || 0.5;
 
     if (pricing.totalAmount < minAllowed) {
       return res.status(400).json({
-        message: `Minimum charge allowed is ${minAllowed} ${currency.toUpperCase()}`,
+        message: `Minimum charge is ${minAllowed} ${currency.toUpperCase()}`,
       });
     }
 
     const orderId = await generateOrderId();
 
-    const newOrder = await Order.create({
-      userId: userId ? new mongoose.Types.ObjectId(userId) : null,
+    const orderPayload = {
+      cartId,
       contactInfo,
       deliveryAddress,
       billingAddress,
       cartItems,
+      pricing,
+      orderId,
       payment: {
         status: "pending",
         currency: currencyLower,
       },
-      pricing,
-      orderId,
-    });
+    };
+
+    const newOrder = await Order.create(orderPayload);
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(pricing.totalAmount * 100),
@@ -81,7 +79,7 @@ const buyProducts = async (req, res) => {
         orderId: newOrder._id.toString(),
         orderNumber: orderId,
         emailOrPhone: contactInfo.emailOrPhone,
-        userId: userId ? userId : "guest",
+        cartId,
       },
     });
 

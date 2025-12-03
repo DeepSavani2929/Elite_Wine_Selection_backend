@@ -1,5 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const Product = require("../models/products.js");
+const Order = require("../models/order");
 
 const createProduct = async (req, res) => {
   try {
@@ -77,12 +78,10 @@ const getProductsBasedOnType = async (req, res) => {
     ]);
 
     if (!products) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Products are not fetched successfully!",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Products are not fetched successfully!",
+      });
     }
 
     return res.status(200).json({
@@ -295,6 +294,61 @@ const updateProduct = async (req, res) => {
   }
 };
 
+const getPopularProducts = async (req, res) => {
+  try {
+    const products = await Order.aggregate([
+      {
+        $unwind: "$cartItems",
+      },
+
+      {
+        $group: {
+          _id: "$cartItems.productId",
+          productId: { $first: "$cartItems.productId" },
+          productName: { $first: "$cartItems.productName" },
+          productImg: { $first: "$cartItems.productImg" },
+          price: { $first: "$cartItems.price" },
+          totalOrdered: { $sum: "$cartItems.quantity" },
+          orderCount: { $sum: 1 },
+        },
+      },
+
+      {
+        $addFields: {
+          productId: { $toObjectId: "$_id" },
+        },
+      },
+
+      {
+        $sort: { totalOrdered: -1 },
+      },
+
+      {
+        $limit: 3,
+      },
+    ]);
+
+    if (!products || products.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No popular products found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: products,
+      message: "Popular products fetched successfully",
+    });
+  } catch (error) {
+    console.error("Popular Products Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createProduct,
   getProductsBasedOnType,
@@ -302,4 +356,5 @@ module.exports = {
   getProduct,
   getRelatedProducts,
   updateProduct,
+  getPopularProducts,
 };
