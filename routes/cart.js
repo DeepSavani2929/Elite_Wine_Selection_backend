@@ -1,17 +1,31 @@
+const router = require("express").Router();
 const {
-  addProductIntoTheCart,
+  addToCart,
   incrementQuantity,
   decrementQuantity,
-  getAllProductsAvailableInCart,
+  // getAllProductsAvailableInCart,
   deleteCartProduct,
+  getCartItems,
 } = require("../controllers/cart");
 
-const router = require("express").Router();
+const authMiddleware = require("../middleware/authMiddleware");
 
-router.post("/addToCart", addProductIntoTheCart);
-router.put("/incrementQuantity/:cartId/:productId", incrementQuantity);
-router.put("/decrementQuantity/:cartId/:productId", decrementQuantity);
-router.get("/getCartProducts/:cartId", getAllProductsAvailableInCart);
-router.get("/getCartProducts/user", getAllProductsAvailableInCart);
-router.get("/deteleCartProduct/:cartId/:productId", deleteCartProduct);
+router.post("/addToCart", authMiddleware, addToCart);
+router.put(
+  "/incrementQuantity/:cartId/:productId",
+  authMiddleware,
+  incrementQuantity
+);
+router.put(
+  "/decrementQuantity/:cartId/:productId",
+  authMiddleware,
+  decrementQuantity
+);
+router.get("/getCartProducts/:cartId", authMiddleware, getCartItems);
+// router.get("/getCartProducts/user", getAllProductsAvailableInCart);
+router.get(
+  "/deteleCartProduct/:cartId/:productId",
+  authMiddleware,
+  deleteCartProduct
+);
 module.exports = router;

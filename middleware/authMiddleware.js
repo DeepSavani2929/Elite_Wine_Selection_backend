@@ -1,23 +1,21 @@
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET } = process.env;
 
-module.exports = function authCart(req, res, next) {
+const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
-    req.user = null;  
     return next();
   }
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = {
-      id: decoded.id,
-      cartId: decoded.cartId
-    };
+    req.user = decoded;
   } catch {
-    req.user = null;
+    return res.status(401).json({ success: false, message: "Unauthorized user!"})
   }
 
   next();
 };
+
+module.exports = authMiddleware;

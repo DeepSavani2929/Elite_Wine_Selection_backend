@@ -447,12 +447,9 @@
 // };
 
 
-const Cart = require("../models/cart");
+const Cart = require("../models/cart.js");
 const mongoose = require("mongoose");
 
-/* ------------------------------------------
-   MERGE CARTS (Guest → User)
---------------------------------------------- */
 const mergeCarts = async (guestCartId, userCartId, userId) => {
   if (!guestCartId || guestCartId === userCartId) return;
 
@@ -462,11 +459,9 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
   let userCart = await Cart.findOne({ cartId: userCartId });
 
   if (!userCart) {
-    userCart = await Cart.create({
-      cartId: userCartId,
-      userId,
-      items: []
-    });
+    const newCartData = { cartId: userCartId, items: [] };
+    if (userId) newCartData.userId = userId;   
+    userCart = await Cart.create(newCartData);
   }
 
   for (const guestItem of guestCart.items) {
@@ -484,10 +479,11 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
     }
   }
 
+  if (userId) userCart.userId = userId; 
+
   await userCart.save();
   await Cart.deleteOne({ cartId: guestCartId });
 };
-
 
 const addToCart = async (req, res) => {
   try {
@@ -502,11 +498,10 @@ const addToCart = async (req, res) => {
     let cart = await Cart.findOne({ cartId });
 
     if (!cart) {
-      cart = await Cart.create({
-        cartId,
-        userId: userId || null,
-        items: []
-      });
+      const newCartData = { cartId, items: [] };
+      if (userId) newCartData.userId = userId; 
+
+      cart = await Cart.create(newCartData);
     }
 
     const item = cart.items.find((i) => i.productId.toString() === productId);
@@ -517,7 +512,7 @@ const addToCart = async (req, res) => {
       cart.items.push({ productId, quantity: 1 });
     }
 
-    if (userId) cart.userId = userId;
+    if (userId) cart.userId = userId; 
 
     await cart.save();
 
@@ -527,20 +522,86 @@ const addToCart = async (req, res) => {
   }
 };
 
+
+
 const getCartItems = async (req, res) => {
   try {
     const cartId = req.user?.cartId || req.params.cartId;
 
-    const cart = await Cart.findOne({ cartId }).populate("items.productId");
+    if (!cartId) {
+      return res.status(400).json({
+        success: false,
+        message: "cartId is required"
+      });
+    }
+
+    const items = await Cart.aggregate([
+      { $match: { cartId } },
+
+      { $unwind: "$items" },
+
+      {
+        $addFields: {
+          "items.productId": {
+            $cond: [
+              { $eq: [{ $type: "$items.productId" }, "string"] },
+              { $toObjectId: "$items.productId" },
+              "$items.productId"
+            ]
+          }
+        }
+      },
+
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.productId",
+          foreignField: "_id",
+          as: "productDetails"
+        }
+      },
+
+      { $unwind: "$productDetails" },
+
+      {
+        $addFields: {
+          productId: "$items.productId",
+          quantity: "$items.quantity",
+          productName: "$productDetails.productName",
+          productImg: "$productDetails.productImg",
+          price: "$productDetails.price",
+          variety: "$productDetails.variety",
+          medal: "$productDetails.medal",
+          flavour: "$productDetails.flavour",
+          size: "$productDetails.size",
+          inStock: "$productDetails.inStock",
+          categoryType: "$productDetails.categoryType"
+        }
+      },
+
+      {
+        $project: {
+          _id: 0,
+          items: 0,
+          productDetails: 0
+        }
+      }
+    ]);
 
     return res.json({
       success: true,
-      data: cart ? cart.items : []
+      data: items || []
     });
+
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
+
+
 
 const incrementQuantity = async (req, res) => {
   try {
@@ -561,6 +622,8 @@ const incrementQuantity = async (req, res) => {
     return res.json({ success: false, message: err.message });
   }
 };
+
+
 
 const decrementQuantity = async (req, res) => {
   try {
@@ -587,6 +650,8 @@ const decrementQuantity = async (req, res) => {
   }
 };
 
+
+
 const deleteCartProduct = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -604,6 +669,7 @@ const deleteCartProduct = async (req, res) => {
     return res.json({ success: false, message: err.message });
   }
 };
+
 
 module.exports = {
   addToCart,

@@ -176,7 +176,7 @@ const resetPasswordEmailTemplate = require("../template/resetPasswordEmail.js");
 const { EMAIL_USER, EMAIL_PASS, JWT_SECRET } = process.env;
 
 const { mergeCarts } = require("./cart.js");
-const Cart = require("../models/cart.js");
+// const Cart = require("../models/cart.js");
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
