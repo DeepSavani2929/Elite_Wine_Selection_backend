@@ -183,106 +183,186 @@ const transporter = nodemailer.createTransport({
   auth: { user: EMAIL_USER, pass: EMAIL_PASS },
 });
 
+// const register = async (req, res) => {
+//   try {
+//     const { firstName, lastName, email, password, guestCartId } = req.body;
+//     console.log(req.body);
+
+//     if (!firstName || !lastName || !email || !password) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "All fields are required!" });
+//     }
+
+//     const existing = await User.findOne({ email });
+//     if (existing)
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Email already registered" });
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // const finalCartId =
+//     //   guestCartId && guestCartId !== "null"
+//     //     ? guestCartId
+//     //     : "cart-" + new mongoose.Types.ObjectId().toString();
+
+//     const newUser = await User.create({
+//       firstName,
+//       lastName,
+//       email,
+//       password: hashedPassword,
+//       cartId: finalCartId,
+//     });
+
+//     // if (guestCartId && guestCartId !== "null") {
+//     //   await Cart.updateMany({ cartId: guestCartId }, { userId: newUser._id });
+//     // }
+
+//     const token = await jwt.sign({ id: newUser._id }, JWT_SECRET, {
+//       expiresIn: "1d",
+//     });
+//     const { password: _, ...userData } = newUser._doc;
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "User registered successfully!",
+//       token,
+//       cartId: finalCartId,
+//       data: userData,
+//     });
+//   } catch (error) {
+//     return res.status(400).json({ success: false, message: error.message });
+//   }
+// };
+
+
+
+const generateUserCartId = (userId) => {
+  return `user-${userId.toString()}`;
+};
+
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, guestCartId } = req.body;
-    console.log(req.body);
-
-    if (!firstName || !lastName || !email || !password) {
-      return res
-        .status(400)
-        .json({ success: false, message: "All fields are required!" });
-    }
 
     const existing = await User.findOne({ email });
-    if (existing)
-      return res
-        .status(400)
-        .json({ success: false, message: "Email already registered" });
+    if (existing) return res.json({ success: false, message: "Email exists" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const finalCartId =
-      guestCartId && guestCartId !== "null"
-        ? guestCartId
-        : "cart-" + new mongoose.Types.ObjectId().toString();
-
+    const hashed = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       firstName,
       lastName,
       email,
-      password: hashedPassword,
-      cartId: finalCartId,
+      password: hashed
     });
 
-    if (guestCartId && guestCartId !== "null") {
-      await Cart.updateMany({ cartId: guestCartId }, { userId: newUser._id });
-    }
+    const userCartId = generateUserCartId(newUser._id);
 
-    const token = await jwt.sign({ id: newUser._id }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
-    const { password: _, ...userData } = newUser._doc;
+    await mergeCarts(guestCartId, userCartId, newUser._id);
 
-    return res.status(200).json({
+    const token = jwt.sign(
+      { id: newUser._id, cartId: userCartId },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
       success: true,
-      message: "User registered successfully!",
+      message: "Registered!",
       token,
-      cartId: finalCartId,
-      data: userData,
+      userId: newUser._id,
+      cartId: userCartId,
+      data: newUser
     });
   } catch (error) {
-    return res.status(400).json({ success: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
+
+
+
+// const loginUser = async (req, res) => {
+//   try {
+//     const { email, password, guestCartId } = req.body;
+
+//     const loggedInUser = await User.findOne({ email });
+//     if (!loggedInUser)
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid credentials!" });
+
+//     const isMatch = await bcrypt.compare(password, loggedInUser.password);
+//     if (!isMatch)
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "Invalid credentials!" });
+
+//     if (
+//       guestCartId &&
+//       guestCartId !== "null" &&
+//       guestCartId !== loggedInUser.cartId
+//     ) {
+//       const targetCartId =
+//         loggedInUser.cartId ||
+//         "cart-" + new mongoose.Types.ObjectId().toString();
+
+//       if (!loggedInUser.cartId) {
+//         loggedInUser.cartId = targetCartId;
+//         await loggedInUser.save();
+//       }
+
+//       await mergeCarts(guestCartId, targetCartId, loggedInUser._id);
+//     }
+
+//     const token = jwt.sign({ id: loggedInUser._id }, JWT_SECRET, {
+//       expiresIn: "1d",
+//     });
+//     const { password: _, ...userData } = loggedInUser._doc;
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "User LoggedIn Successfully!",
+//       token,
+//       data: userData,
+//       cartId: loggedInUser.cartId,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 
 const loginUser = async (req, res) => {
   try {
     const { email, password, guestCartId } = req.body;
 
-    const loggedInUser = await User.findOne({ email });
-    if (!loggedInUser)
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid credentials!" });
+    const user = await User.findOne({ email });
+    if (!user) return res.json({ success: false, message: "Invalid login" });
 
-    const isMatch = await bcrypt.compare(password, loggedInUser.password);
-    if (!isMatch)
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid credentials!" });
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.json({ success: false, message: "Invalid login" });
 
-    if (
-      guestCartId &&
-      guestCartId !== "null" &&
-      guestCartId !== loggedInUser.cartId
-    ) {
-      const targetCartId =
-        loggedInUser.cartId ||
-        "cart-" + new mongoose.Types.ObjectId().toString();
+    const userCartId = generateUserCartId(user._id);
 
-      if (!loggedInUser.cartId) {
-        loggedInUser.cartId = targetCartId;
-        await loggedInUser.save();
-      }
+    await mergeCarts(guestCartId, userCartId, user._id);
 
-      await mergeCarts(guestCartId, targetCartId, loggedInUser._id);
-    }
+    const token = jwt.sign(
+      { id: user._id, cartId: userCartId },
+      JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-    const token = jwt.sign({ id: loggedInUser._id }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
-    const { password: _, ...userData } = loggedInUser._doc;
-
-    return res.status(200).json({
+    res.json({
       success: true,
-      message: "User LoggedIn Successfully!",
+      message: "Logged In!",
       token,
-      data: userData,
-      cartId: loggedInUser.cartId,
+      userId: user._id,
+      cartId: userCartId,
+      data: user
     });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    res.json({ success: false, message: error.message });
   }
 };
 

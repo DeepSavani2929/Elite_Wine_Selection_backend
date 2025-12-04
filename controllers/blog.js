@@ -37,7 +37,8 @@ const createBlog = async (req, res) => {
 
 const getBlogs = async (req, res) => {
   try {
-    const allBlogs = await Blog.find();
+    const allBlogs = await Blog.find().sort({ createdAt: -1 })  
+      .limit(3);    ;
 
     if (!allBlogs) {
       return res
@@ -67,15 +68,38 @@ const getBlog = async (req, res) => {
         .json({ success: false, message: "blog is not found!" });
     }
 
-    return res
-      .status(200)
-      .json({
-        success: true,
-        data: blog,
-        message: "Blog is fetched successfully!",
-      });
+    return res.status(200).json({
+      success: true,
+      data: blog,
+      message: "Blog is fetched successfully!",
+    });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const getOtherBlogs = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const otherBlogs = await Blog.find({ _id: { $ne: id } });
+
+    if (!otherBlogs || otherBlogs.length === 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No other blogs found!" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: otherBlogs,
+      message: "Other blogs fetched successfully!",
+    });
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -83,4 +107,5 @@ module.exports = {
   createBlog,
   getBlogs,
   getBlog,
+  getOtherBlogs,
 };
