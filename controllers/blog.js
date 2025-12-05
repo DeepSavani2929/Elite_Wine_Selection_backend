@@ -37,8 +37,7 @@ const createBlog = async (req, res) => {
 
 const getBlogs = async (req, res) => {
   try {
-    const allBlogs = await Blog.find().sort({ createdAt: -1 })  
-      .limit(3);    ;
+    const allBlogs = await Blog.find().sort({ createdAt: -1 }).limit(3);
 
     if (!allBlogs) {
       return res

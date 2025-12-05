@@ -3,7 +3,6 @@ const {
   addToCart,
   incrementQuantity,
   decrementQuantity,
-  // getAllProductsAvailableInCart,
   deleteCartProduct,
   getCartItems,
 } = require("../controllers/cart");
@@ -22,7 +21,7 @@ router.put(
   decrementQuantity
 );
 router.get("/getCartProducts/:cartId", authMiddleware, getCartItems);
-// router.get("/getCartProducts/user", getAllProductsAvailableInCart);
+
 router.get(
   "/deteleCartProduct/:cartId/:productId",
   authMiddleware,

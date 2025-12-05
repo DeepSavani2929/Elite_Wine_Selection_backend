@@ -97,210 +97,6 @@ const getProductsBasedOnType = async (req, res) => {
   }
 };
 
-// const getFilteredProducts = async (req, res) => {
-//   try {
-//     let {
-//       size,
-//       grape,
-//       minPrice,
-//       maxPrice,
-//       availability,
-//       categoryType,
-//       sortBy,
-//       page,
-//       limit,
-//     } = req.query;
-
-//     page = Number(page) || 1;
-//     limit = Number(limit) || 6;
-
-//     const matchStage = {};
-
-//     if (size && size !== "Size") {
-//       matchStage.size = size;
-//     }
-
-//     if (grape) {
-//       const grapeArray = grape.split(",");
-//       matchStage.flavour = { $in: grapeArray };
-//     }
-
-//     if (availability) {
-//       if (availability === "In Stock") matchStage.inStock = true;
-//       if (availability === "Out Of Stock") matchStage.inStock = false;
-//     }
-
-//     if (categoryType && categoryType !== "All") {
-//       matchStage.categoryType = categoryType;
-//     }
-
-//     if (minPrice && maxPrice) {
-//       matchStage.price = {
-//         $gte: Number(minPrice),
-//         $lte: Number(maxPrice),
-//       };
-//     }
-
-//     const sortStage = {};
-//     switch (sortBy) {
-//       case "Alphabetically A-Z":
-//         sortStage.productName = 1;
-//         break;
-//       case "Alphabetically Z-A":
-//         sortStage.productName = -1;
-//         break;
-//       case "Price, low to high":
-//         sortStage.price = 1;
-//         break;
-//       case "Price, high to low":
-//         sortStage.price = -1;
-//         break;
-//       case "Date, new to old":
-//         sortStage.createdAt = -1;
-//         break;
-//       case "Date, old to new":
-//         sortStage.createdAt = 1;
-//         break;
-//       case "Featured":
-//         sortStage.categoryType = 1;
-//         break;
-//       default:
-//         sortStage.createdAt = -1;
-//     }
-
-//     const pipeline = [
-//       { $match: matchStage },
-//       { $sort: sortStage },
-//       { $skip: (page - 1) * limit },
-//       { $limit: limit },
-//     ];
-
-//     const products = await Product.aggregate(pipeline);
-
-//     const totalCount = await Product.countDocuments(matchStage);
-
-//     return res.status(200).json({
-//       success: true,
-//       total: totalCount,
-//       page,
-//       limit,
-//       pages: Math.ceil(totalCount / limit),
-//       data: products,
-//     });
-//   } catch (error) {
-//     return res.status(400).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
-
-
-// const getFilteredProducts = async (req, res) => {
-//   try {
-//     let {
-//       size,
-//       grape,
-//       minPrice,
-//       maxPrice,
-//       availability,
-//       categoryType,
-//       sortBy,
-//       page,
-//       limit,
-//     } = req.query;
-
-//     page = Number(page) || 1;
-//     limit = Number(limit) || 6;
-
-//     const matchStage = {};
-
-//     if (size) {
-//       const sizeArray = size.split(","); 
-//       matchStage.size = { $in: sizeArray };
-//     }
-
-//     if (grape) {
-//       const grapeArray = grape.split(",");
-//       matchStage.flavour = { $in: grapeArray };
-//     }
-
-
-//     if (categoryType) {
-//       const categoryArray = categoryType.split(",");
-//       matchStage.categoryType = { $in: categoryArray };
-//     }
-
-//     if (availability) {
-//       const availabilityArray = availability.split(",");
-
-//       const boolValues = availabilityArray.map(a =>
-//         a.trim() === "In Stock" ? true : false
-//       );
-
-//       matchStage.inStock = { $in: boolValues };
-//     }
-
-
-//     if (minPrice && maxPrice) {
-//       matchStage.price = {
-//         $gte: Number(minPrice),
-//         $lte: Number(maxPrice),
-//       };
-//     }
-
-//     // SORTING
-//     const sortStage = {};
-//     switch (sortBy) {
-//       case "Alphabetically A-Z":
-//         sortStage.productName = 1;
-//         break;
-//       case "Alphabetically Z-A":
-//         sortStage.productName = -1;
-//         break;
-//       case "Price, low to high":
-//         sortStage.price = 1;
-//         break;
-//       case "Price, high to low":
-//         sortStage.price = -1;
-//         break;
-//       case "Date, new to old":
-//         sortStage.createdAt = -1;
-//         break;
-//       case "Date, old to new":
-//         sortStage.createdAt = 1;
-//         break;
-//       default:
-//         sortStage.createdAt = -1;
-//     }
-
-//     const pipeline = [
-//       { $match: matchStage },
-//       { $sort: sortStage },
-//       { $skip: (page - 1) * limit },
-//       { $limit: limit },
-//     ];
-
-//     const products = await Product.aggregate(pipeline);
-//     const totalCount = await Product.countDocuments(matchStage);
-
-//     return res.status(200).json({
-//       success: true,
-//       total: totalCount,
-//       page,
-//       limit,
-//       pages: Math.ceil(totalCount / limit),
-//       data: products,
-//     });
-//   } catch (error) {
-//     console.error("FILTER ERROR:", error);
-//     return res.status(400).json({
-//       success: false,
-//       message: error.message,
-//     });
-//   }
-// };
-
 const getFilteredProducts = async (req, res) => {
   try {
     let {
@@ -320,12 +116,10 @@ const getFilteredProducts = async (req, res) => {
 
     const matchStage = {};
 
-
     if (size) {
       const sizeArray = size.split(",");
       matchStage.size = { $in: sizeArray };
     }
-
 
     if (grape) {
       const grapeArray = grape.split(",");
@@ -379,7 +173,6 @@ const getFilteredProducts = async (req, res) => {
         sortStage.createdAt = -1;
     }
 
- 
     const pipeline = [
       { $match: matchStage },
       { $sort: sortStage },
@@ -406,7 +199,6 @@ const getFilteredProducts = async (req, res) => {
     });
   }
 };
-
 
 const getProduct = async (req, res) => {
   try {
