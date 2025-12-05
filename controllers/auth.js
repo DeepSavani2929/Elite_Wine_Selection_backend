@@ -1,3 +1,20 @@
+const User = require("../models/auth.js")
+const bcrypt =require("bcrypt")
+const jwt = require("jsonwebtoken");
+const { EMAIL_USER, EMAIL_PASS, JWT_SECRET } = process.env;
+const { mergeCarts } = require("./cart.js");
+const mongoose = require("mongoose");
+const nodemailer = require("nodemailer");
+
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
+  },
+})
+
 const generateUserCartId = (userId) => {
   return `user-${userId.toString()}`;
 };
