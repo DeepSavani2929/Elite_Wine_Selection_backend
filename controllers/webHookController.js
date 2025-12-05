@@ -4,7 +4,6 @@ const Order = require("../models/order.js");
 const Cart = require("../models/cart.js");
 
 const webHookForPayment = async (req, res) => {
-  console.log("fdsfs");
   const sig = req.headers["stripe-signature"];
   let event;
 
@@ -19,14 +18,9 @@ const webHookForPayment = async (req, res) => {
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
-  console.log("Webhook received:", event.type);
-
   if (event.type === "payment_intent.succeeded") {
     const paymentIntent = event.data.object;
     const { orderId, cartId } = paymentIntent.metadata || {};
-
-    console.log("Metadata:", paymentIntent.metadata);
-    console.log(cartId);
 
     if (!orderId) {
       console.log(" No orderId in metadata");

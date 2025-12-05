@@ -1,54 +1,58 @@
-const User = require("../models/auth.js")
-const bcrypt =require("bcrypt")
+const User = require("../models/auth.js");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { EMAIL_USER, EMAIL_PASS, JWT_SECRET } = process.env;
 const { mergeCarts } = require("./cart.js");
-const mongoose = require("mongoose");
 const nodemailer = require("nodemailer");
 
-
+// ----------------------
+// Email Transporter
+// ----------------------
 const transporter = nodemailer.createTransport({
   service: "gmail",
-  auth: {
-    user: EMAIL_USER,
-    pass: EMAIL_PASS,
-  },
-})
+  auth: { user: EMAIL_USER, pass: EMAIL_PASS },
+});
 
-const generateUserCartId = (userId) => {
-  return `user-${userId.toString()}`;
-};
+// ----------------------
+// Utilities
+// ----------------------
+const generateUserCartId = (userId) => `user-${userId.toString()}`;
 
+const createJwtToken = (payload) =>
+  jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+
+// ----------------------
+// Register Controller
+// ----------------------
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, guestCartId } = req.body;
 
-    const existing = await User.findOne({ email });
-    if (existing)
+    // Validate existing user
+    if (await User.findOne({ email })) {
       return res.json({
         success: false,
         message: "User with this email already exists",
       });
+    }
 
-    const hashed = await bcrypt.hash(password, 10);
+    // Create new user
+    const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await User.create({
       firstName,
       lastName,
       email,
-      password: hashed,
+      password: hashedPassword,
     });
 
+    // Assign cart and merge
     const userCartId = generateUserCartId(newUser._id);
-
     await mergeCarts(guestCartId, userCartId, newUser._id);
 
-    const token = jwt.sign(
-      { id: newUser._id, cartId: userCartId },
-      JWT_SECRET,
-      { expiresIn: "1d" }
-    );
+    // Generate token
+    const token = createJwtToken({ id: newUser._id, cartId: userCartId });
 
-    res.json({
+    return res.json({
       success: true,
       message: "User registered successfully!",
       token,
@@ -57,46 +61,54 @@ const register = async (req, res) => {
       data: newUser,
     });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
+// ----------------------
+// Login Controller
+// ----------------------
 const loginUser = async (req, res) => {
   try {
     const { email, password, guestCartId } = req.body;
 
+    // Validate user existence
     const user = await User.findOne({ email });
     if (!user)
       return res.json({ success: false, message: "Invalid Credentials!" });
 
-    const match = await bcrypt.compare(password, user.password);
-    if (!match)
+    // Password match
+    if (!(await bcrypt.compare(password, user.password))) {
       return res.json({ success: false, message: "Invalid Credentials!" });
+    }
 
+    // Assign cart and merge
     const userCartId = generateUserCartId(user._id);
-
     await mergeCarts(guestCartId, userCartId, user._id);
 
-    const token = jwt.sign({ id: user._id, cartId: userCartId }, JWT_SECRET, {
-      expiresIn: "1d",
-    });
+    // Create token
+    const token = createJwtToken({ id: user._id, cartId: userCartId });
 
-    res.json({
+    return res.json({
       success: true,
-      message: "User loggedin successfully!",
+      message: "User loggedIn successfully!",
       token,
       userId: user._id,
       cartId: userCartId,
       data: user,
     });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    return res.json({ success: false, message: error.message });
   }
 };
 
+// ----------------------
+// Email Verification
+// ----------------------
 const emailVerify = async (req, res) => {
   try {
     const { email } = req.body;
+
     const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({
@@ -104,8 +116,9 @@ const emailVerify = async (req, res) => {
         message: "User with this email is not registered!",
       });
 
-    const resetLink = `http://localhost:5173/reset-password/${email}`; // use user._id rather than email for safety
+    const resetLink = `http://localhost:5173/reset-password/${email}`;
     const htmlTemplate = resetPasswordEmailTemplate(resetLink);
+
     await transporter.sendMail({
       from: EMAIL_USER,
       to: user.email,
@@ -123,13 +136,18 @@ const emailVerify = async (req, res) => {
   }
 };
 
+// ----------------------
+// Reset Password
+// ----------------------
 const resetPassword = async (req, res) => {
   try {
     const { newPassword, email } = req.body;
+
     if (!email || !newPassword)
-      return res
-        .status(400)
-        .json({ success: false, message: "email and newPassword required" });
+      return res.status(400).json({
+        success: false,
+        message: "email and newPassword required",
+      });
 
     const user = await User.findOne({ email });
     if (!user)
@@ -137,13 +155,13 @@ const resetPassword = async (req, res) => {
         .status(404)
         .json({ success: false, message: "User not registered" });
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    return res
-      .status(200)
-      .json({ success: true, message: "User password changed Successfully!" });
+    return res.status(200).json({
+      success: true,
+      message: "User password changed Successfully!",
+    });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

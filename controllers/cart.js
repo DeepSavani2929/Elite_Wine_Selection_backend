@@ -1,6 +1,9 @@
 const Cart = require("../models/cart.js");
 const mongoose = require("mongoose");
 
+// ------------------------------
+// Merge Guest Cart With User Cart
+// ------------------------------
 const mergeCarts = async (guestCartId, userCartId, userId) => {
   if (!guestCartId || guestCartId === userCartId) return;
 
@@ -10,11 +13,14 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
   let userCart = await Cart.findOne({ cartId: userCartId });
 
   if (!userCart) {
-    const newCartData = { cartId: userCartId, items: [] };
-    if (userId) newCartData.userId = userId;
-    userCart = await Cart.create(newCartData);
+    userCart = await Cart.create({
+      cartId: userCartId,
+      items: [],
+      ...(userId && { userId })
+    });
   }
 
+  // Merge items
   for (const guestItem of guestCart.items) {
     const existing = userCart.items.find(
       (i) => i.productId.toString() === guestItem.productId.toString()
@@ -25,7 +31,7 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
     } else {
       userCart.items.push({
         productId: guestItem.productId,
-        quantity: guestItem.quantity,
+        quantity: guestItem.quantity
       });
     }
   }
@@ -36,45 +42,50 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
   await Cart.deleteOne({ cartId: guestCartId });
 };
 
+// ------------------------------
+// Add Item to Cart
+// ------------------------------
 const addToCart = async (req, res) => {
   try {
     const { productId } = req.body;
-    const userCartId = req.user?.cartId || null;
+    const cartId = req.user?.cartId || req.body.cartId;
     const userId = req.user?.id || null;
-    const cartId = userCartId || req.body.cartId;
 
-    if (!productId || !cartId)
-      return res
-        .status(400)
-        .json({ success: false, message: "cartId and productId required" });
+    if (!productId || !cartId) {
+      return res.status(400).json({
+        success: false,
+        message: "cartId and productId required",
+      });
+    }
 
     let cart = await Cart.findOne({ cartId });
 
     if (!cart) {
-      const newCartData = { cartId, items: [] };
-      if (userId) newCartData.userId = userId;
-
-      cart = await Cart.create(newCartData);
+      cart = await Cart.create({
+        cartId,
+        items: [],
+        ...(userId && { userId })
+      });
     }
 
     const item = cart.items.find((i) => i.productId.toString() === productId);
 
-    if (item) {
-      item.quantity++;
-    } else {
-      cart.items.push({ productId, quantity: 1 });
-    }
+    if (item) item.quantity++;
+    else cart.items.push({ productId, quantity: 1 });
 
     if (userId) cart.userId = userId;
 
     await cart.save();
 
-    return res.json({ success: true, message: "Added to cart", data: cart });
+    return res.json({ success: true, message: "Product is added into the cart! ", data: cart });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
+// ------------------------------
+// Get Cart Items With Product Details
+// ------------------------------
 const getCartItems = async (req, res) => {
   try {
     const cartId = req.user?.cartId || req.params.cartId;
@@ -88,7 +99,6 @@ const getCartItems = async (req, res) => {
 
     const items = await Cart.aggregate([
       { $match: { cartId } },
-
       { $unwind: "$items" },
 
       {
@@ -97,10 +107,10 @@ const getCartItems = async (req, res) => {
             $cond: [
               { $eq: [{ $type: "$items.productId" }, "string"] },
               { $toObjectId: "$items.productId" },
-              "$items.productId",
-            ],
-          },
-        },
+              "$items.productId"
+            ]
+          }
+        }
       },
 
       {
@@ -108,8 +118,8 @@ const getCartItems = async (req, res) => {
           from: "products",
           localField: "items.productId",
           foreignField: "_id",
-          as: "productDetails",
-        },
+          as: "productDetails"
+        }
       },
 
       { $unwind: "$productDetails" },
@@ -126,8 +136,8 @@ const getCartItems = async (req, res) => {
           flavour: "$productDetails.flavour",
           size: "$productDetails.size",
           inStock: "$productDetails.inStock",
-          categoryType: "$productDetails.categoryType",
-        },
+          categoryType: "$productDetails.categoryType"
+        }
       },
 
       {
@@ -135,22 +145,19 @@ const getCartItems = async (req, res) => {
           _id: 0,
           items: 0,
           productDetails: 0,
-        },
-      },
+        }
+      }
     ]);
 
-    return res.json({
-      success: true,
-      data: items || [],
-    });
+    return res.json({ success: true, data: items || [] });
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    return res.status(500).json({ success: false, message: err.message });
   }
 };
 
+// ------------------------------
+// Increase Quantity
+// ------------------------------
 const incrementQuantity = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -165,12 +172,15 @@ const incrementQuantity = async (req, res) => {
     item.quantity++;
     await cart.save();
 
-    return res.json({ success: true, message: "Quantity increased" });
+    return res.json({ success: true, message: "Quantity of this product is increased successfully!" });
   } catch (err) {
     return res.json({ success: false, message: err.message });
   }
 };
 
+// ------------------------------
+// Decrease Quantity
+// ------------------------------
 const decrementQuantity = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -182,8 +192,10 @@ const decrementQuantity = async (req, res) => {
     const index = cart.items.findIndex(
       (i) => i.productId.toString() === productId
     );
-    if (index === -1)
+
+    if (index === -1) {
       return res.json({ success: false, message: "Item not found" });
+    }
 
     if (cart.items[index].quantity <= 1) {
       cart.items.splice(index, 1);
@@ -193,12 +205,15 @@ const decrementQuantity = async (req, res) => {
 
     await cart.save();
 
-    return res.json({ success: true, message: "Quantity updated" });
+    return res.json({ success: true, message: "Quantity decreased" });
   } catch (err) {
     return res.json({ success: false, message: err.message });
   }
 };
 
+// ------------------------------
+// Delete Product From Cart
+// ------------------------------
 const deleteCartProduct = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -207,7 +222,9 @@ const deleteCartProduct = async (req, res) => {
     const cart = await Cart.findOne({ cartId });
     if (!cart) return res.json({ success: false, message: "Cart not found" });
 
-    cart.items = cart.items.filter((i) => i.productId.toString() !== productId);
+    cart.items = cart.items.filter(
+      (i) => i.productId.toString() !== productId
+    );
 
     await cart.save();
 
@@ -217,6 +234,7 @@ const deleteCartProduct = async (req, res) => {
   }
 };
 
+// ------------------------------
 module.exports = {
   addToCart,
   getCartItems,
