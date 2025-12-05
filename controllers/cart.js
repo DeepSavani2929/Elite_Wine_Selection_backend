@@ -16,7 +16,7 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
     userCart = await Cart.create({
       cartId: userCartId,
       items: [],
-      ...(userId && { userId })
+      ...(userId && { userId }),
     });
   }
 
@@ -31,7 +31,7 @@ const mergeCarts = async (guestCartId, userCartId, userId) => {
     } else {
       userCart.items.push({
         productId: guestItem.productId,
-        quantity: guestItem.quantity
+        quantity: guestItem.quantity,
       });
     }
   }
@@ -64,7 +64,7 @@ const addToCart = async (req, res) => {
       cart = await Cart.create({
         cartId,
         items: [],
-        ...(userId && { userId })
+        ...(userId && { userId }),
       });
     }
 
@@ -77,9 +77,13 @@ const addToCart = async (req, res) => {
 
     await cart.save();
 
-    return res.json({ success: true, message: "Product is added into the cart! ", data: cart });
+    return res.status(200).json({
+      success: true,
+      message: "Product is added into the cart! ",
+      data: cart,
+    });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
@@ -107,10 +111,10 @@ const getCartItems = async (req, res) => {
             $cond: [
               { $eq: [{ $type: "$items.productId" }, "string"] },
               { $toObjectId: "$items.productId" },
-              "$items.productId"
-            ]
-          }
-        }
+              "$items.productId",
+            ],
+          },
+        },
       },
 
       {
@@ -118,8 +122,8 @@ const getCartItems = async (req, res) => {
           from: "products",
           localField: "items.productId",
           foreignField: "_id",
-          as: "productDetails"
-        }
+          as: "productDetails",
+        },
       },
 
       { $unwind: "$productDetails" },
@@ -136,8 +140,8 @@ const getCartItems = async (req, res) => {
           flavour: "$productDetails.flavour",
           size: "$productDetails.size",
           inStock: "$productDetails.inStock",
-          categoryType: "$productDetails.categoryType"
-        }
+          categoryType: "$productDetails.categoryType",
+        },
       },
 
       {
@@ -145,13 +149,13 @@ const getCartItems = async (req, res) => {
           _id: 0,
           items: 0,
           productDetails: 0,
-        }
-      }
+        },
+      },
     ]);
 
-    return res.json({ success: true, data: items || [] });
+    return res.status(200).json({ success: true, data: items || [] });
   } catch (err) {
-    return res.status(500).json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
@@ -172,9 +176,12 @@ const incrementQuantity = async (req, res) => {
     item.quantity++;
     await cart.save();
 
-    return res.json({ success: true, message: "Quantity of this product is increased successfully!" });
+    return res.status(200).json({
+      success: true,
+      message: "Quantity of this product is increased successfully!",
+    });
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
@@ -194,7 +201,9 @@ const decrementQuantity = async (req, res) => {
     );
 
     if (index === -1) {
-      return res.json({ success: false, message: "Item not found" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Item not found" });
     }
 
     if (cart.items[index].quantity <= 1) {
@@ -205,9 +214,11 @@ const decrementQuantity = async (req, res) => {
 
     await cart.save();
 
-    return res.json({ success: true, message: "Quantity decreased" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Quantity decreased" });
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
@@ -220,17 +231,20 @@ const deleteCartProduct = async (req, res) => {
     const cartId = req.user?.cartId || req.params.cartId;
 
     const cart = await Cart.findOne({ cartId });
-    if (!cart) return res.json({ success: false, message: "Cart not found" });
+    if (!cart)
+      return res
+        .status(400)
+        .json({ success: false, message: "Cart not found" });
 
-    cart.items = cart.items.filter(
-      (i) => i.productId.toString() !== productId
-    );
+    cart.items = cart.items.filter((i) => i.productId.toString() !== productId);
 
     await cart.save();
 
-    return res.json({ success: true, message: "Product removed" });
+    return res
+      .status(200)
+      .json({ success: true, message: "Product is removed successfully!" });
   } catch (err) {
-    return res.json({ success: false, message: err.message });
+    return res.status(400).json({ success: false, message: err.message });
   }
 };
 
