@@ -22,7 +22,7 @@ router.put(
 );
 router.get("/getCartProducts/:cartId", authMiddleware, getCartItems);
 
-router.get(
+router.delete(
   "/deteleCartProduct/:cartId/:productId",
   authMiddleware,
   deleteCartProduct

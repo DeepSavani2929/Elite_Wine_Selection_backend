@@ -48,7 +48,7 @@ const register = async (req, res) => {
 
     const token = createJwtToken({ id: newUser._id, cartId: userCartId });
 
-    return res.json({
+    return res.status(200).json({
       success: true,
       message: "User registered successfully!",
       token,
